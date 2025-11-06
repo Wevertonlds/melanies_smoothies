@@ -8,8 +8,6 @@ st.write(
     """Choose the fruits you want in your custom Smoothie!"""
 )
 
-# Get the active Snowflake session and fetch fruit names
-session = get_active_session()
 my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
 
 # Add text input for the name
