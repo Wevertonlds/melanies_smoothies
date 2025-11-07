@@ -36,6 +36,6 @@ if ingredients_list:
 else:
     st.write("You can only select up to 5 options. Remove an option first." if len(ingredients_list) > 5 else "")
 
-import requests 
-smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon") 
-st.text(smoothiefroot_response)
+import requests
+smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
+st.text(smoothiefroot_response.text)
