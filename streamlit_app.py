@@ -22,9 +22,9 @@ st.write(f"The name on your Smoothie will be: {name_on_order}")
 # Multiselect widget for choosing fruits with max 5 selections
 ingredients_list = st.multiselect(
     "Choose up to 5 ingredients:",
-    pd_df['FRUIT_NAME'].tolist(),  # Usando FRUIT_NAME de pd_df para exibição
+    [row[0] for row in my_dataframe.collect()],  # Extract FRUIT_NAME as strings
     max_selections=5,
-    default=["Tangerine", "Kiwi", "Lime", "Mango", "Strawberries" "Blueberriess"]  # Default selection
+    default=[]  # No default selection to start
 )
 
 # Display selected fruits if the list is not empty
