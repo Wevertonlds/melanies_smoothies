@@ -7,12 +7,13 @@ st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
 st.write(
     """Choose the fruits you want in your custom Smoothie!"""
 )
+# Get the active Snowflake session and fetch fruit names
+my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
+
 # Snowflake connection setup
 cnx = st.connection("snowflake")
 session = cnx.session()
 
-# Get the active Snowflake session and fetch fruit names
-my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
 # Add text input for the name
 name_on_order = st.text_input("Name on Smoothie:", value="Your Name")
 st.write(f"The name on your smoothie will be: {name_on_order}")
