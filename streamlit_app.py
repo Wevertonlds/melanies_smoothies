@@ -1,39 +1,40 @@
 import streamlit as st
 from snowflake.snowpark.functions import col, upper
-import pandas as pd  # <-- IMPORTAÇÃO OBRIGATÓRIA DO DESAFIO (como pd)
+import pandas as pd  # <-- já importado como pd
+import requests
 
 # ================================== TÍTULO ==================================
-st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
+st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_staw:")
 st.write("Choose the fruits you want in your custom Smoothie!")
 
 # ============================= CONEXÃO SNOWFLAKE ============================
 cnx = st.connection("snowflake")
 session = cnx.session()
 
-# ======================= DATAFRAME COM SEARCH_ON EM MAIÚSCULAS ==============
+# ======================= DATAFRAME COM SEARCH_ON ===========================
 my_dataframe = session.table("smoothies.public.fruit_options") \
     .select(col("FRUIT_NAME")) \
     .withColumn("SEARCH_ON", upper(col("FRUIT_NAME")))
 
-# ======================= CONVERTE PARA PANDAS (DESAFIO ATUAL) ===============
-pd_df = my_dataframe.to_pandas()  # <-- LINHA OBRIGATÓRIA DO DESAFIO
+# ============================ CONVERTE PARA PANDAS =========================
+pd_df = my_dataframe.to_pandas()  # <-- obrigatório
 
-# ======================= EXIBE O pd_df (DESAFIO ATUAL) =====================
-st.dataframe(pd_df, use_container_width=True)  # <-- EXIBE COMO PANDAS DATAFRAME
+# ========================= EXIBE pd_df (desafio anterior) ==================
+st.dataframe(pd_df, use_container_width=True)
 
 # ========================== NOME DO SMOOTHIE ================================
 name_on_order = st.text_input("Name on Smoothie:", value="Your Name")
 st.write(f"The name on your Smoothie will be: **{name_on_order}**")
 
-# ========================== MULTISELECT DE FRUTAS ==========================
+# ========================== MULTISELECT =====================================
 ingredients_list = st.multiselect(
     "Choose up to 5 ingredients:",
-    pd_df["FRUIT_NAME"].tolist(),  # <-- usa pd_df como pedido
+    pd_df["FRUIT_NAME"].tolist(),
     max_selections=5,
     default=["Tangerine", "Kiwi", "Lime", "Mango", "Strawberries"]
 )
 
-# ========================= EXIBE INFORMAÇÕES DAS FRUTAS =====================
+# ========================= LOOP DAS FRUTAS ESCOLHIDAS =======================
 if ingredients_list:
     ingredients_string = ""
 
@@ -42,22 +43,22 @@ if ingredients_list:
 
         st.subheader(f"{fruit_chosen} Nutrition Information")
 
-        # Agora usa pd_df + .loc (próximo desafio vai pedir exatamente isso)
-        search_on = pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON'].iloc[0]
-        st.write(f"The search value for **{fruit_chosen}** is **{search_on}**.")
+        # <<< AQUI É A LINHA "ESTRANHA" QUE O DESAFIO PEDE >>>
+        search_on=pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON'].iloc[0]
+        st.write('The search value for ', fruit_chosen, ' is ', search_on, '.')
 
-        # Chama a API
-        response = requests.get(f"https://my.smoothiefroot.com/api/fruit/{search_on}")
-        if response.status_code == 200:
-            data = response.json()
-            nutrition_df = pd.DataFrame(data[0]["nutritions"].items(), columns=["Nutrient", "Amount"])
-            st.dataframe(nutrition_df, use_container_width=True)
+        # <<< API com o SEARCH_ON correto >>>
+        fruityvice_response = requests.get("https://my.smoothiefroot.com/api/fruit/" + search_on)
+        
+        if fruityvice_response.status_code == 200:
+            fv_df = pd.DataFrame(fruityvice_response.json()[0]["nutritions"].items(), columns=["Nutrient", "Amount"])
+            st.dataframe(fv_df, use_container_width=True)
         else:
-            st.error(f"No info found for {fruit_chosen}.")
+            st.error(f"No data found for {fruit_chosen}")
 
+    # =========================== INSERT SEGURO ==============================
     ingredients_string = ingredients_string.strip()
 
-    # INSERT SEGURO (com parâmetros)
     my_insert_stmt = """
         INSERT INTO smoothies.public.orders (NAME_ON_ORDER, INGREDIENTS)
         VALUES (%s, %s)
@@ -69,7 +70,8 @@ if ingredients_list:
             st.success(f"Your Smoothie is ordered, {name_on_order}! 🎉", icon="✅")
         except Exception as e:
             st.error(f"Error: {e}")
-else:
-    st.info("Select at least one fruit!")
 
-# st.stop()  # <-- Deixe comentado agora (só usava antes)
+else:
+    st.info("Select at least one fruit to see the magic happen!")
+
+# st.stop()  # <-- já pode ficar comentado
