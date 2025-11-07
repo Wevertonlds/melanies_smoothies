@@ -14,7 +14,7 @@ session = cnx.session()
 my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
 
 # Input para nome do pedido
-name_on_order = st.text_input("Nome no Smoothie:", value="Seu Nome")
+name_on_order = st.text_input("Nome no Smoothie:", value="Your Name")
 st.write(f"O nome no seu smoothie será: {name_on_order}")
 
 # Multiselect para escolher até 5 frutas
@@ -23,7 +23,7 @@ ingredients_list = st.multiselect(
     [row[0] for row in my_dataframe.collect()],
     max_selections=5,
     default=[],
-    placeholder="Escolha uma opção"
+    placeholder="Choose options"
 )
 
 # Se houver frutas selecionadas, monta a string e insere no banco
@@ -42,7 +42,7 @@ if ingredients_list:
 else:
     st.write("Por favor, selecione pelo menos um ingrediente para enviar seu pedido.")
 
-# Nova seção para exibir informação nutricional do SmoothieFroot (opcional, condicional)
+# Nova seção para exibir informação nutricional do SmoothieFroot (apenas se ingredientes forem selecionados)
 if ingredients_list:
     import requests
     smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
