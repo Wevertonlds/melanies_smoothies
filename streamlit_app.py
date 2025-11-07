@@ -22,12 +22,12 @@ ingredients_list = st.multiselect(
     "Choose up to 5 ingredients:",
     [row[0] for row in my_dataframe.collect()],  # Extract FRUIT_NAME as strings
     max_selections=5,
-    default=[]  # No default selection to start
+    default=["Tangerine", "Kiwi", "Lime", "Mango", "Ximenia"]  # Default selection to match image
 )
 
 # Display selected fruits if the list is not empty
 if ingredients_list:
-    ingredients_string = ' '.join(ingredients_list)  # Join fruits with a space
+    ingredients_string = ""
     # SQL statement for insertion
     my_insert_stmt = f"""INSERT INTO smoothies.public.orders (NAME_ON_ORDER, ingredients) VALUES ('{name_on_order}', '{ingredients_string}')"""
     # Trigger insert and success message on button click
@@ -37,9 +37,10 @@ if ingredients_list:
             st.success(f'Your smoothie is ordered, {name_on_order}!', icon="✅")
             # Iterate over chosen fruits and call the API
             for fruit_chosen in ingredients_list:
-                smoothiefroot_response = requests.get(f"https://my.smoothiefroot.com/api/fruit/{fruit_chosen}")
+                ingredients_string += fruit_chosen + " "
+                st.subheader(fruit_chosen + " Nutrition Information")
+                smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/" + fruit_chosen)
                 if smoothiefroot_response.status_code == 200:
-                    st.subheader(f"{fruit_chosen} Nutrition Information")
                     sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
                 else:
                     st.error(f"Sorry, that fruit is not in our database.")
