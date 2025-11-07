@@ -1,5 +1,6 @@
 import streamlit as st
 from snowflake.snowpark.functions import col
+import requests
 
 # Título do app
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
@@ -27,7 +28,7 @@ ingredients_list = st.multiselect(
 # Display selected fruits if the list is not empty
 if ingredients_list:
     ingredients_string = ' '.join(ingredients_list)  # Join fruits with a space
-    # SQL statement for insertion (not displayed by default)
+    # SQL statement for insertion
     my_insert_stmt = f"""INSERT INTO smoothies.public.orders (NAME_ON_ORDER, ingredients) VALUES ('{name_on_order}', '{ingredients_string}')"""
     # Trigger insert and success message on button click
     if st.button("Submit Order"):
@@ -39,9 +40,7 @@ if ingredients_list:
 else:
     st.write("You can only select up to 5 options. Remove an option first." if len(ingredients_list) > 5 else "")
 
-# Adicionando a chamada à API conforme o exercício (com correção mínima)
-import requests
+# Adicionando a chamada à API
 smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
-#st.text(smoothiefroot_response.json())
-sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=true)
-
+# Display API response as a dataframe
+sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
