@@ -28,7 +28,6 @@ ingredients_list = st.multiselect(
 # Se houver frutas selecionadas, monta a string e insere no banco
 if ingredients_list:
     ingredients_string = ' '.join(ingredients_list)
-    # Usar query parametrizada para evitar SQL Injection
     my_insert_stmt = """
         INSERT INTO smoothies.public.orders (NAME_ON_ORDER, ingredients)
         VALUES (:1, :2)
@@ -41,3 +40,8 @@ if ingredients_list:
             st.error(f"Error inserting into the database: {e}")
 else:
     st.write("Please select at least one ingredient to submit your order.")
+
+# Nova seção para exibir informação nutricional do SmoothieFroot
+import requests
+smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
+st.text(smoothiefroot_response)
