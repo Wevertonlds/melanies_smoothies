@@ -1,11 +1,14 @@
 import streamlit as st
 from snowflake.snowpark.functions import col
+
 # Título do app
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
 st.write("Choose the fruits you want in your custom Smoothie!")
+
 # Conexão com Snowflake
 cnx = st.connection("snowflake")
 session = cnx.session()
+
 # Buscar frutas disponíveis
 my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
 
@@ -36,6 +39,14 @@ if ingredients_list:
 else:
     st.write("You can only select up to 5 options. Remove an option first." if len(ingredients_list) > 5 else "")
 
+# Adicionando a chamada à API com tratamento de erro
 import requests
-smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
-st.text(smoothiefroot_response.text)
+try:
+    smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
+    st.write(f"Status da API: {smoothiefroot_response.status_code}")  # Exibe o status (ex.: 200)
+    if smoothiefroot_response.status_code == 200:
+        st.text(smoothiefroot_response.text)  # Exibe o conteúdo da resposta
+    else:
+        st.error(f"Erro na API: {smoothiefroot_response.status_code}")
+except requests.exceptions.RequestException as e:
+    st.error(f"Erro ao chamar a API: {e}")
