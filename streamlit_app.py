@@ -1,58 +1,66 @@
 import streamlit as st
 from snowflake.snowpark.functions import col
 import requests
-import pandas as pd  # Importando pandas como pd
+import pandas as pd
 
-# App title
+# Título do app
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
 st.write("Choose the fruits you want in your custom Smoothie!")
 
-# Snowflake connection
-cnx = st.connection("snowflake")
-session = cnx.session()
+# Conexão com Snowflake
+session = st.connection("snowflake").session()
 
-# Fetch available fruits with SEARCH_ON into a pandas DataFrame
-my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'), col('SEARCH_ON'))
-pd_df = my_dataframe.to_pandas()  # Criando a versão pd_df a partir de my_dataframe
+# Pega FRUIT_NAME e SEARCH_ON do banco
+my_dataframe = session.table("smoothies.public.fruit_options").select('FRUIT_NAME', 'SEARCH_ON')
+pd_df = my_dataframe.to_pandas()
 
-# Text input for the name
+# Input do nome
 name_on_order = st.text_input("Name on Smoothie:", value="Your Name")
 st.write(f"The name on your Smoothie will be: {name_on_order}")
 
-# Multiselect widget for choosing fruits with max 5 selections
+# Multiselect com até 5 frutas (só mostra FRUIT_NAME bonitinho)
 ingredients_list = st.multiselect(
     "Choose up to 5 ingredients:",
-    [row[0] for row in my_dataframe.collect()],  # Extract FRUIT_NAME as strings
-    max_selections=5,
-    default=[]  # No default selection to start
+    pd_df['FRUIT_NAME'].tolist(),
+    max_selections=5
 )
 
-# Display selected fruits if the list is not empty
+# Variável para montar os ingredientes
+ingredients_string = ""
+
 if ingredients_list:
-    ingredients_string = ""
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + " "
-        st.subheader(fruit_chosen + " Nutrition Information")
-        search_on = pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON']
-        if not search_on.empty:
-            search_on = search_on.iloc[0]
-            st.write('The search value for ', fruit_chosen, ' is ', search_on, '.')
-        else:
-            search_on = fruit_chosen
-            st.write('The search value for ', fruit_chosen, ' is not found, using ', search_on, '.')
-        smoothiefroot_response = requests.get(f"https://my.smoothiefroot.com/api/fruit/{search_on}")
-        try:
-            sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
-        except:
-            st.error("Sorry, that fruit is not in our database.")
 
-    # SQL statement for insertion after building ingredients_string
-    my_insert_stmt = f"""INSERT INTO smoothies.public.orders (NAME_ON_ORDER, ingredients) VALUES ('{name_on_order}', '{ingredients_string}')"""
+        # Pega o SEARCH_ON correto
+        search_on_row = pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON']
+        search_on = search_on_row.iloc[0] if not search_on_row.empty else None
+
+        # Mostra no app (debug bonitinho)
+        st.write(f"The search value for **{fruit_chosen}** is `{search_on}`.")
+
+        st.subheader(f"{fruit_chosen} Nutrition Information")
+
+        # Só chama a API se tiver SEARCH_ON válido
+        if search_on and pd.notna(search_on):
+            smoothiefroot_response = requests.get(f"https://my.smoothiefroot.com/api/fruit/{search_on}")
+            if smoothiefroot_response.status_code == 200:
+                sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
+            else:
+                st.error(f"Sorry, no data for {fruit_chosen} right now.")
+        else:
+            st.error(f"Sorry, **{fruit_chosen}** is not available in SmoothieFroot yet. Mel is talking to Melanie about it! 😅")
+
+    # Botão de submit
+    my_insert_stmt = f"""INSERT INTO smoothies.public.orders (NAME_ON_ORDER, ingredients) 
+                        VALUES ('{name_on_order}', '{ingredients_string.strip()}')"""
+
     if st.button("Submit Order"):
         try:
             session.sql(my_insert_stmt).collect()
-            st.success(f'Your smoothie is ordered, {name_on_order}!', icon="✅")
+            st.success(f"Your smoothie is ordered, {name_on_order}! 🎉", icon="✅")
         except Exception as e:
-            st.error(f"Error inserting into the database: {e}")
+            st.error(f"Error: {e}")
+
 else:
-    st.write("You can only select up to 5 options. Remove an option first." if len(ingredients_list) > 5 else "")
+    st.info("Please select at least one fruit to start building your smoothie! 🍓")
