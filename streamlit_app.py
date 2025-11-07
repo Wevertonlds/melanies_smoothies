@@ -4,7 +4,7 @@ from snowflake.snowpark.functions import col
 
 # Título do app
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
-st.write("Choose the fruits you want in your custom Smoothie!")
+st.write("Escolha as frutas que deseja no seu Smoothie personalizado!")
 
 # Conexão com Snowflake
 cnx = st.connection("snowflake")
@@ -14,15 +14,16 @@ session = cnx.session()
 my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
 
 # Input para nome do pedido
-name_on_order = st.text_input("Name on Smoothie:", value="Your Name")
-st.write(f"The name on your smoothie will be: {name_on_order}")
+name_on_order = st.text_input("Nome no Smoothie:", value="Seu Nome")
+st.write(f"O nome no seu smoothie será: {name_on_order}")
 
 # Multiselect para escolher até 5 frutas
 ingredients_list = st.multiselect(
-    "Choose up to 5 ingredients:",
+    "Escolha até 5 ingredientes:",
     [row[0] for row in my_dataframe.collect()],
     max_selections=5,
-    default=[]
+    default=[],
+    placeholder="Escolha uma opção"
 )
 
 # Se houver frutas selecionadas, monta a string e insere no banco
@@ -32,16 +33,17 @@ if ingredients_list:
         INSERT INTO smoothies.public.orders (NAME_ON_ORDER, ingredients)
         VALUES (:1, :2)
     """
-    if st.button("Submit Order"):
+    if st.button("Enviar Pedido"):
         try:
             session.sql(my_insert_stmt, params=[name_on_order, ingredients_string]).collect()
-            st.success(f'Your smoothie is ordered, {name_on_order}!', icon="✅")
+            st.success(f'Seu smoothie foi pedido, {name_on_order}!', icon="✅")
         except Exception as e:
-            st.error(f"Error inserting into the database: {e}")
+            st.error(f"Erro ao inserir no banco de dados: {e}")
 else:
-    st.write("Please select at least one ingredient to submit your order.")
+    st.write("Por favor, selecione pelo menos um ingrediente para enviar seu pedido.")
 
-# New section to display smoothiefroot nutrition information
-import requests
-smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
-st.text(smoothiefroot_response)
+# Nova seção para exibir informação nutricional do SmoothieFroot (opcional, condicional)
+if ingredients_list:
+    import requests
+    smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
+    st.text(smoothiefroot_response)
