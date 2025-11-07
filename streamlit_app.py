@@ -24,7 +24,7 @@ ingredients_list = st.multiselect(
     "Choose up to 5 ingredients:",
     pd_df['FRUIT_NAME'].tolist(),  # Usando FRUIT_NAME de pd_df para exibição
     max_selections=5,
-    default=["Tangerine", "Kiwi", "Lime", "Mango", "Strawberries"]  # Default selection
+    default=["Tangerine", "Kiwi", "Lime", "Mango", "Strawberries" "Blueberriess"]  # Default selection
 )
 
 # Display selected fruits if the list is not empty
