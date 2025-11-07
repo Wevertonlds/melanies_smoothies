@@ -35,12 +35,10 @@ if ingredients_list:
         try:
             session.sql(my_insert_stmt).collect()
             st.success(f'Your smoothie is ordered, {name_on_order}!', icon="✅")
+            # Adicionando a chamada à API dentro do bloco de sucesso
+            smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
+            sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
         except Exception as e:
             st.error(f"Error inserting into the database: {e}")
 else:
     st.write("You can only select up to 5 options. Remove an option first." if len(ingredients_list) > 5 else "")
-
-# Adicionando a chamada à API
-smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
-# Display API response as a dataframe
-sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
