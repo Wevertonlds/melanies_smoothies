@@ -2,34 +2,36 @@
 import streamlit as st
 from snowflake.snowpark.functions import col
 
-# Write directly to the app
+# Título do app
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
-st.write(
-    """Choose the fruits you want in your custom Smoothie!"""
-)
-# Get the active Snowflake session and fetch fruit names
-my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
+st.write("Choose the fruits you want in your custom Smoothie!")
 
-# Snowflake connection setup
+# Conexão com Snowflake (deve vir antes de usar session)
 cnx = st.connection("snowflake")
 session = cnx.session()
 
-# Add text input for the name
+# Buscar frutas disponíveis
+my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'))
+
+# Input para nome do pedido
 name_on_order = st.text_input("Name on Smoothie:", value="Your Name")
 st.write(f"The name on your smoothie will be: {name_on_order}")
-# Multiselect widget for choosing fruits with max 5 selections
+
+# Multiselect para escolher até 5 frutas
 ingredients_list = st.multiselect(
     "Choose up to 5 ingredients:",
-    [row[0] for row in my_dataframe.collect()], # Extract FRUIT_NAME as strings
+    [row[0] for row in my_dataframe.collect()],
     max_selections=5,
-    default=[] # No default selection to start
+    default=[]
 )
-# Display selected fruits if the list is not empty
+
+# Se houver frutas selecionadas, monta a string e insere no banco
 if ingredients_list:
-    ingredients_string = ' '.join(ingredients_list) # Join fruits with a space
-    # SQL statement for insertion (not displayed by default)
-    my_insert_stmt = f"""INSERT INTO smoothies.public.orders (NAME_ON_ORDER, ingredients) VALUES ('{name_on_order}', '{ingredients_string}')"""
-    # Trigger insert and success message on button click
+    ingredients_string = ' '.join(ingredients_list)
+    my_insert_stmt = f"""
+        INSERT INTO smoothies.public.orders (NAME_ON_ORDER, ingredients)
+        VALUES ('{name_on_order}', '{ingredients_string}')
+    """
     if st.button("Submit Order"):
         try:
             session.sql(my_insert_stmt).collect()
