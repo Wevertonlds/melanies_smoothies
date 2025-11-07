@@ -39,14 +39,7 @@ if ingredients_list:
 else:
     st.write("You can only select up to 5 options. Remove an option first." if len(ingredients_list) > 5 else "")
 
-# Adicionando a chamada à API com tratamento de erro
+# Adicionando a chamada à API conforme o exercício (com correção mínima)
 import requests
-try:
-    smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
-    st.write(f"Status da API: {smoothiefroot_response.status_code}")  # Exibe o status (ex.: 200)
-    if smoothiefroot_response.status_code == 200:
-        st.text(smoothiefroot_response.text)  # Exibe o conteúdo da resposta
-    else:
-        st.error(f"Erro na API: {smoothiefroot_response.status_code}")
-except requests.exceptions.RequestException as e:
-    st.error(f"Erro ao chamar a API: {e}")
+smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/watermelon")
+st.text(smoothiefroot_response.text)
