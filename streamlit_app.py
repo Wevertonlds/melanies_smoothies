@@ -6,9 +6,8 @@ from snowflake.snowpark.functions import col
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
 st.write("Choose the fruits you want in your custom Smoothie!")
 
-# Conexão com Snowflake (deve vir antes de usar session)
-
-nx = st.connection("snowflake", type="snowflake")
+# Conexão com Snowflake
+cnx = st.connection("snowflake")
 session = cnx.session()
 
 # Buscar frutas disponíveis
@@ -29,15 +28,16 @@ ingredients_list = st.multiselect(
 # Se houver frutas selecionadas, monta a string e insere no banco
 if ingredients_list:
     ingredients_string = ' '.join(ingredients_list)
-    my_insert_stmt = f"""
+    # Usar query parametrizada para evitar SQL Injection
+    my_insert_stmt = """
         INSERT INTO smoothies.public.orders (NAME_ON_ORDER, ingredients)
-        VALUES ('{name_on_order}', '{ingredients_string}')
+        VALUES (:1, :2)
     """
     if st.button("Submit Order"):
         try:
-            session.sql(my_insert_stmt).collect()
+            session.sql(my_insert_stmt, params=[name_on_order, ingredients_string]).collect()
             st.success(f'Your smoothie is ordered, {name_on_order}!', icon="✅")
         except Exception as e:
             st.error(f"Error inserting into the database: {e}")
 else:
-    st.write("You can only select up to 5 options. Remove an option first." if len(ingredients_list) > 5 else "")
+    st.write("Please select at least one ingredient to submit your order.")
