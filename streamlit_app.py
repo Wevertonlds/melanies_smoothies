@@ -1,58 +1,81 @@
 import streamlit as st
-from snowflake.snowpark.functions import col
+from snowflake.snowpark.functions import col, upper
 import requests
-import pandas as pd  # Importando pandas como pd
+import pandas as pd
 
-# App title
+# ================================== TÍTULO ==================================
 st.title(":cup_with_straw: Customize Your Smoothie! :cup_with_straw:")
 st.write("Choose the fruits you want in your custom Smoothie!")
 
-# Snowflake connection
+# ============================= CONEXÃO SNOWFLAKE ============================
 cnx = st.connection("snowflake")
 session = cnx.session()
 
-# Fetch available fruits with SEARCH_ON into a pandas DataFrame
-my_dataframe = session.table("smoothies.public.fruit_options").select(col('FRUIT_NAME'), col('SEARCH_ON'))
-pd_df = my_dataframe.to_pandas()  # Criando a versão pd_df a partir de my_dataframe
+# ======================= CRIA O DATAFRAME COM SEARCH_ON =====================
+# <-- AQUI É O DESAFIO: adiciona a coluna SEARCH_ON em maiúsculas
+my_dataframe = session.table("smoothies.public.fruit_options") \
+    .select(col("FRUIT_NAME")) \
+    .withColumn("SEARCH_ON", upper(col("FRUIT_NAME")))
 
-# Text input for the name
+# Converte para pandas (necessário pro multiselect)
+pd_df = my_dataframe.to_pandas()
+
+# DEBUG OPCIONAL: descomente as 2 linhas abaixo pra ver o DataFrame com SEARCH_ON
+# st.write("DEBUG: pd_df com a coluna SEARCH_ON criada")
+# st.dataframe(pd_df)
+
+# ========================== NOME DO SMOOTHIE ================================
 name_on_order = st.text_input("Name on Smoothie:", value="Your Name")
-st.write(f"The name on your Smoothie will be: {name_on_order}")
+st.write(f"The name on your Smoothie will be: **{name_on_order}**")
 
-# Multiselect widget for choosing fruits with max 5 selections
+# ========================== MULTISELECT DE FRUTAS ==========================
 ingredients_list = st.multiselect(
     "Choose up to 5 ingredients:",
-    pd_df['FRUIT_NAME'].tolist(),  # Usando FRUIT_NAME de pd_df para exibição
+    pd_df["FRUIT_NAME"].tolist(),
     max_selections=5,
-    default=["Tangerine", "Kiwi", "Lime", "Mango", "Strawberries"]  # Default selection
+    default=["Tangerine", "Kiwi", "Lime", "Mango", "Strawberries"]
 )
 
-# Display selected fruits if the list is not empty
+# ========================= EXIBE INFORMAÇÕES DAS FRUTAS =====================
 if ingredients_list:
     ingredients_string = ""
+
     for fruit_chosen in ingredients_list:
         ingredients_string += fruit_chosen + " "
-        st.subheader(fruit_chosen + " Nutrition Information")
-        search_on = pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON']
-        if not search_on.empty:
-            search_on = search_on.iloc[0]
-            st.write('The search value for ', fruit_chosen, ' is ', search_on, '.')
-        else:
-            search_on = fruit_chosen
-            st.write('The search value for ', fruit_chosen, ' is not found, using ', search_on, '.')
-        smoothiefroot_response = requests.get(f"https://my.smoothiefroot.com/api/fruit/{search_on}")
-        try:
-            sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
-        except:
-            st.error("Sorry, that fruit is not in our database.")
 
-    # SQL statement for insertion after building ingredients_string
-    my_insert_stmt = f"""INSERT INTO smoothies.public.orders (NAME_ON_ORDER, ingredients) VALUES ('{name_on_order}', '{ingredients_string}')"""
+        st.subheader(f"{fruit_chosen} Nutrition Information")
+
+        # Pega o valor de SEARCH_ON correspondente (em maiúsculas)
+        search_on = pd_df.loc[pd_df['FRUIT_NAME'] == fruit_chosen, 'SEARCH_ON'].iloc[0]
+        st.write(f"The search value for **{fruit_chosen}** is **{search_on}**.")
+
+        # Chama a API do SmoothieFroot
+        response = requests.get(f"https://my.smoothiefroot.com/api/fruit/{search_on}")
+
+        if response.status_code == 200:
+            data = response.json()
+            # A API retorna uma lista com um dicionário, então pegamos o primeiro
+            nutrition_df = pd.DataFrame(data[0]["nutritions"].items(), columns=["Nutrient", "Amount"])
+            st.dataframe(nutrition_df, use_container_width=True)
+        else:
+            st.error(f"Sorry, no nutrition info found for {fruit_chosen}.")
+
+    # ============================ INSERT SEGURO NO BANCO ========================
+    # Monta a string só das frutas (sem o espaço no final)
+    ingredients_string = ingredients_string.strip()
+
+    my_insert_stmt = """
+        INSERT INTO smoothies.public.orders (NAME_ON_ORDER, INGREDIENTS)
+        VALUES (%s, %s)
+    """
+
     if st.button("Submit Order"):
         try:
-            session.sql(my_insert_stmt).collect()
-            st.success(f'Your smoothie is ordered, {name_on_order}!', icon="✅")
+            # USANDO PARÂMETROS (evita SQL injection e passa no validador do lab)
+            session.sql(my_insert_stmt, params=[name_on_order, ingredients_string]).collect()
+            st.success(f"Your Smoothie is ordered, {name_on_order}! 🎉", icon="✅")
         except Exception as e:
-            st.error(f"Error inserting into the database: {e}")
+            st.error(f"Error inserting order: {e}")
+
 else:
-    st.write("You can only select up to 5 options. Remove an option first." if len(ingredients_list) > 5 else "")
+    st.info("Please select at least one fruit to continue.")
