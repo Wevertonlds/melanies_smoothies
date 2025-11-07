@@ -24,11 +24,12 @@ name_on_order = st.text_input("Name on Smoothie:", value="Johnny")
 st.write(f"The name on your Smoothie will be: **{name_on_order}**")
 
 # ========================== MULTISELECT =====================================
+# Multiselect widget for choosing fruits with max 5 selections
 ingredients_list = st.multiselect(
     "Choose up to 5 ingredients:",
-    pd_df["FRUIT_NAME"].tolist(),
+    [row[0] for row in my_dataframe.collect()],  # Extract FRUIT_NAME as strings
     max_selections=5,
-    default=["Blueberries", "Jackfruit", "Raspberries", "Kiwi", "Dragon Fruit" ,  "Lime" ]
+    default=[]  # No default selection to start
 )
 
 # ========================= LOOP DAS FRUTAS ==================================
