@@ -28,22 +28,21 @@ ingredients_list = st.multiselect(
 # Display selected fruits if the list is not empty
 if ingredients_list:
     ingredients_string = ""
-    # SQL statement for insertion
+    for fruit_chosen in ingredients_list:
+        ingredients_string += fruit_chosen + " "
+        st.subheader(fruit_chosen + " Nutrition Information")
+        smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/" + fruit_chosen)
+        try:
+            sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
+        except:
+            st.error("Sorry, that fruit is not in our database.")
+
+    # SQL statement for insertion after building ingredients_string
     my_insert_stmt = f"""INSERT INTO smoothies.public.orders (NAME_ON_ORDER, ingredients) VALUES ('{name_on_order}', '{ingredients_string}')"""
-    # Trigger insert and success message on button click
     if st.button("Submit Order"):
         try:
             session.sql(my_insert_stmt).collect()
             st.success(f'Your smoothie is ordered, {name_on_order}!', icon="✅")
-            # Iterate over chosen fruits and call the API
-            for fruit_chosen in ingredients_list:
-                ingredients_string += fruit_chosen + " "
-                st.subheader(fruit_chosen + " Nutrition Information")
-                smoothiefroot_response = requests.get("https://my.smoothiefroot.com/api/fruit/" + fruit_chosen)
-                if smoothiefroot_response.status_code == 200:
-                    sf_df = st.dataframe(data=smoothiefroot_response.json(), use_container_width=True)
-                else:
-                    st.error(f"Sorry, that fruit is not in our database.")
         except Exception as e:
             st.error(f"Error inserting into the database: {e}")
 else:
