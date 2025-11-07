@@ -28,7 +28,7 @@ ingredients_list = st.multiselect(
     "Choose up to 5 ingredients:",
     pd_df["FRUIT_NAME"].tolist(),
     max_selections=5,
-    default=["Blueberries", "Jackfruit", "Raspberries", "Kiwi", "Dragon Fruit"]
+    default=["Blueberries", "Jackfruit", "Raspberries", "Kiwi", "Dragon Fruit" ,  "Lime" ]
 )
 
 # ========================= LOOP DAS FRUTAS ==================================
